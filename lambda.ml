@@ -30,13 +30,14 @@ let rec beta_reduce e =
   let rec reduce e r = (
     match e with
     | Apply (f, p) -> (
-      let f = reduce f (fun e -> r (Apply (e, p))) in
-      let p = reduce p (fun e -> r (Apply (f, e))) in
       match f with
       | Lambda (v, e) ->
         let e = substitute (v, p) e in
         raise (Beta_reduction (r e))
-      | _ -> Apply (f, p)
+      | _ -> (
+        let f = reduce f (fun e -> r (Apply (e, p))) in
+        Apply (f, p)
+      )
     )
     | Lambda (v, e') -> (
       let e' = reduce e' (fun e -> r (Lambda (v, e))) in
