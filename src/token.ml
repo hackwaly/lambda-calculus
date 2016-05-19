@@ -1,4 +1,4 @@
 type token =
-  | EOF | NL | LAMBDA | DOT | WS | LPAREN | RPAREN | EQ | LET
+  | EOF | NL | LAMBDA | DOT | LPAREN | RPAREN | EQ | LET
   | VAR of string
   | NAT of int

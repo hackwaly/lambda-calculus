@@ -14,9 +14,14 @@ let init_globals parse_exp =
     fun globals (k, v) ->
     StringMap.add k v globals
   ) StringMap.empty [
-    "plus",  parse_exp "λm.λn.λf.λx.(m f (n f x))";
-    "succ",  parse_exp "λm.λn.λf.λx.(m f (n f x)) 1";
-    "mult",  parse_exp "λm.λn.λf.(n (m f))";
-    "true",  parse_exp "λa.λb.a";
-    "false", parse_exp "λa.λb.b";
+    "plus",  parse_exp "λm.λn.λf.λx. m f (n f x)";
+    "succ",  parse_exp "λn.λf.λx. f (n f x)";
+    "mult",  parse_exp "λm.λn.λf. n (m f)";
+    "exp",   parse_exp "λm.λn. n m";
+    "pred",  parse_exp "λn.λf.λx. n (λg.λh. h (g f)) (λu. x) (λu. u)";
+    "true",  parse_exp "λa.λb. a";
+    "false", parse_exp "λa.λb. b";
+    "and",   parse_exp "λm.λn.λa.λb. m (n a b) b";
+    "or",    parse_exp "λm.λn.λa.λb. m a (n a b)";
+    "not",   parse_exp "λm.λa.λb. m b a";
   ]

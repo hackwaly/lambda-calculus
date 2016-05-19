@@ -1,6 +1,6 @@
 OCBFLAGS = \
 	-use-menhir \
-	-menhir "menhir --external-tokens Token" \
+	-menhir "menhir --explain --external-tokens Token" \
 	-package unix \
 	-package num \
 	-I src \
