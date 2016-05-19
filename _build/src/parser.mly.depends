@@ -1,2 +1,0 @@
-src/parser.ml: Eval Lambda Lexing Token
-src/parser.mli: Eval Lambda Lexing Token
