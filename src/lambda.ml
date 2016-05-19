@@ -10,7 +10,8 @@ let rec string_of ?(paren_free=true) exp =
     "(" ^ s ^ ")"
   in
   match exp with
-  | Lambda (v, e) -> "λ" ^ string_of (Var v) ^ "." ^ string_of ~paren_free:false e
+  | Lambda (v, e) ->
+    "λ" ^ string_of (Var v) ^ "." ^ string_of ~paren_free:false e
   | Var v -> v
   | Apply (f, p) -> auto_paren (
     string_of f ^ " " ^ string_of ~paren_free:false p

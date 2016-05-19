@@ -1,4 +1,3 @@
-
 let main () =
   let lexbuf = Lexing.from_channel stdin in
   let module StringMap = Map.Make(String) in

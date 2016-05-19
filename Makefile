@@ -1,7 +1,17 @@
-.PHONY: run clean
+OCBFLAGS = \
+	-use-menhir \
+	-package unix \
+	-I src \
+	-quiet
 
-run:
-	cat input.lambda | ocamlbuild -use-menhir -package unix main.native --
+.PHONY: test build clean
+.SILENT: build
+
+test: build
+	cat input.lambda | ./main.native
+
+build:
+	ocamlbuild $(OCBFLAGS) main.native
 
 clean:
 	ocamlbuild -clean
