@@ -2,4 +2,5 @@ let S = λf.λg.λx.(f x (g x))
 let K = λx.λy.x
 let I = λx.x
 let Y = λR.(λx.(R (x x)) λx.(R (x x)))
+S K K
 Y (K I)
