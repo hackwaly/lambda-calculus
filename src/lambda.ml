@@ -51,9 +51,6 @@ let string_of exp =
   let he = to_hum_exp exp in
   string_of_hum_exp he
 
-
-let no_trace x = ()
-
 let rec normalize e =
   let rec subst (v, a) e = (
     match e with
