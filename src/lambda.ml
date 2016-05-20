@@ -97,12 +97,16 @@ let unique_vars exp =
       Lambda (var, rename ~map:(VarMap.add v var map) e)
     )
     | Apply (f, a) -> (
-      Apply (rename ~map f, rename ~map a)
+      let f = rename ~map f in
+      let a = rename ~map a in
+      Apply (f, a)
     )
   ) in
   rename exp
 
-let rec normalize exp =
+let notrace _ = ()
+
+let rec normalize ?(trace=notrace) exp =
   let rec subst (v, a) e = (
     match e with
     | Lambda (v', e') when v' <> v -> Lambda (v', subst (v, a) e')
@@ -110,23 +114,40 @@ let rec normalize exp =
     | Var v' when v' = v -> a
     | e' -> e'
   ) in
-  let rec cbn e = (
+  let rec cbn e r = (
     match e with
     | Apply (f, a) -> (
-      match cbn f with
-      | Lambda (v, e') -> cbn (subst (v, a) e')
+      match cbn f (fun f -> Apply (f, a)) with
+      | Lambda (v, e') -> (
+        let e' = subst (v, a) e' in
+        trace (r e');
+        cbn e' r
+      )
       | _ -> e
     )
     | _ -> e
   ) in
-  let rec nor e = (
+  let rec nor e r = (
     match e with
-    | Lambda (v, e) -> Lambda (v, nor e)
+    | Lambda (v, e) -> Lambda (v, nor e (fun e -> Lambda (v, e)))
     | Apply (f, a) -> (
-      match cbn f with
-      | Lambda (v, e') -> nor (subst (v, a) e')
-      | _ -> Apply (nor f, nor a)
+      match cbn f (fun f -> Apply (f, a)) with
+      | Lambda (v, e') -> (
+        let e' = subst (v, a) e' in
+        trace (r e');
+        nor e' r
+      )
+      | _ -> (
+        let f = nor f (fun f -> Apply (f, a)) in
+        let a = nor a (fun a -> Apply (f, a)) in
+        Apply (f, a)
+      )
     )
     | _ -> e
   ) in
-  unique_vars (nor (unique_vars exp))
+  let exp = unique_vars exp in
+  trace exp;
+  let exp = nor exp (fun e -> e) in
+  let exp = unique_vars exp in
+  trace exp;
+  exp
