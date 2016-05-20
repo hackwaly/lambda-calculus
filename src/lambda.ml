@@ -54,7 +54,7 @@ let string_of exp =
 
 let no_trace x = ()
 
-let rec normalize ?(trace=no_trace) e =
+let rec normalize e =
   let rec subst (v, a) e = (
     match e with
     | Lambda (v', e') when v' <> v -> Lambda (v', subst (v, a) e')
@@ -62,41 +62,23 @@ let rec normalize ?(trace=no_trace) e =
     | Var v' when v' = v -> a
     | e' -> e'
   ) in
-  let rec cbn e r = (
+  let rec cbn e = (
     match e with
     | Apply (f, a) -> (
-      let r' f = Apply (f, a) in
-      match cbn f r' with
-      | Lambda (v, e') -> (
-        let e = cbn (subst (v, a) e') r' in
-        trace (r e);
-        e
-      )
+      match cbn f with
+      | Lambda (v, e') -> cbn (subst (v, a) e')
       | _ -> e
     )
     | _ -> e
   ) in
-  let rec nor e r = (
+  let rec nor e = (
     match e with
-    | Lambda (v, e) -> (
-      let r' e = Lambda (v, e) in
-      Lambda (v, nor e r')
-    )
+    | Lambda (v, e) -> Lambda (v, nor e)
     | Apply (f, a) -> (
-      let r' f = Apply (f, a) in
-      match cbn f r' with
-      | Lambda (v, e') -> (
-        let e = nor (subst (v, a) e') r' in
-        trace (r e);
-        e
-      )
-      | f -> (
-        let r' f = Apply (f, a) in
-        let f = nor f r' in
-        let r' a = Apply (f, a) in
-        Apply (f, nor a r')
-      )
+      match cbn f with
+      | Lambda (v, e') -> nor (subst (v, a) e')
+      | _ -> Apply (nor f, nor a)
     )
     | _ -> e
   ) in
-  nor e (fun x -> x)
+  nor e

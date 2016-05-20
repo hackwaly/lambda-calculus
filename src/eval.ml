@@ -43,8 +43,7 @@ let execute ctx cmd =
   match cmd with
   | Eval exp ->
     let exp = resolve ctx.globals exp in
-    print_exp exp;
-    ignore (Lambda.normalize ~trace:print_exp exp)
+    print_exp (Lambda.normalize exp)
   | Bind (name, exp) -> (
     ctx.globals <- StringMap.add name exp ctx.globals
   )
