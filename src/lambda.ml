@@ -117,7 +117,7 @@ let rec normalize ?(trace=notrace) exp =
   let rec cbn e r = (
     match e with
     | Apply (f, a) -> (
-      match cbn f (fun f -> Apply (f, a)) with
+      match cbn f (fun f -> r (Apply (f, a))) with
       | Lambda (v, e') -> (
         let e' = subst (v, a) e' in
         trace (r e');
@@ -129,17 +129,20 @@ let rec normalize ?(trace=notrace) exp =
   ) in
   let rec nor e r = (
     match e with
-    | Lambda (v, e) -> Lambda (v, nor e (fun e -> Lambda (v, e)))
+    | Lambda (v, e) -> (
+      let e = nor e (fun e -> r (Lambda (v, e))) in
+      Lambda (v, e)
+    )
     | Apply (f, a) -> (
-      match cbn f (fun f -> Apply (f, a)) with
+      match cbn f (fun f -> r (Apply (f, a))) with
       | Lambda (v, e') -> (
         let e' = subst (v, a) e' in
         trace (r e');
         nor e' r
       )
       | _ -> (
-        let f = nor f (fun f -> Apply (f, a)) in
-        let a = nor a (fun a -> Apply (f, a)) in
+        let f = nor f (fun f -> r (Apply (f, a))) in
+        let a = nor a (fun a -> r (Apply (f, a))) in
         Apply (f, a)
       )
     )
