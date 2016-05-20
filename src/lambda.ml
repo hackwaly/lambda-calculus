@@ -4,45 +4,99 @@ type exp =
   | Lambda of var * exp
   | Apply of exp * exp
 
-let rec string_of ?(paren_free=true) exp =
-  let auto_paren s =
-    if paren_free then s else
-    "(" ^ s ^ ")"
-  in
+type hum_exp =
+  | HumVar of var
+  | HumSeq of var list * hum_exp list
+
+let rec to_hum_exp exp =
   match exp with
-  | Lambda (v, e) ->
-    "λ" ^ string_of (Var v) ^ "." ^ string_of ~paren_free:false e
-  | Var v -> v
-  | Apply (f, p) -> auto_paren (
-    string_of f ^ " " ^ string_of ~paren_free:false p
+  | Var v -> HumVar v
+  | Lambda (v, e) -> (
+    let he = to_hum_exp e in
+    match he with
+    | HumVar _ -> HumSeq (v :: [], he :: [])
+    | HumSeq (pl, el) -> HumSeq (v :: pl, el)
+  )
+  | Apply (f, a) -> (
+    let hf = to_hum_exp f in
+    let ha = to_hum_exp a in
+    match hf with
+    | HumSeq ([], el) -> HumSeq ([], List.append el (ha :: []))
+    | _ -> HumSeq ([], hf :: ha :: [])
   )
 
-let rec substitute (v, p) e =
-  match e with
-  | Lambda (v', e') when v' <> v -> Lambda (v', substitute (v, p) e')
-  | Apply (f, p') -> Apply (substitute (v, p) f, substitute (v, p) p')
-  | Var v' when v' = v -> p
-  | e' -> e'
+let rec string_of_hum_exp ?(paren_free=true) exp =
+  match exp with
+  | HumVar v -> v
+  | HumSeq (pl, el) -> (
+    assert (List.length el >= 1);
+    let els = el
+    |> List.map (fun e -> string_of_hum_exp ~paren_free:false e)
+    |> String.concat " " in
+    let str = match List.length pl with
+    | 0 -> els
+    | _ -> (
+      let pls = pl
+      |> List.map (fun p -> "λ" ^ p ^ ".")
+      |> String.concat "" in
+      pls ^ " " ^ els
+    ) in
+    let need_paren = not paren_free && (
+      (List.length pl > 0) || (List.length el >= 2)
+    ) in
+    if need_paren then "(" ^ str ^ ")" else str
+  )
+
+let string_of exp =
+  let he = to_hum_exp exp in
+  string_of_hum_exp he
 
 
-exception Beta_reduction of exp
+let no_trace x = ()
 
-let rec beta_reduce e =
-  let rec reduce e r = (
+let rec normalize ?(trace=no_trace) e =
+  let rec subst (v, a) e = (
     match e with
-    | Apply (f, p) -> (
-      let f = reduce f (fun e -> r (Apply (e, p))) in
-      match f with
-      | Lambda (v, e) ->
-        let e = substitute (v, p) e in
-        raise (Beta_reduction (r e))
-      | _ -> Apply (f, p)
-    )
-    | Lambda (v, e') -> (
-      let e' = reduce e' (fun e -> r (Lambda (v, e))) in
-      Lambda (v, e')
-    )
-    | e -> e
+    | Lambda (v', e') when v' <> v -> Lambda (v', subst (v, a) e')
+    | Apply (f, a') -> Apply (subst (v, a) f, subst (v, a) a')
+    | Var v' when v' = v -> a
+    | e' -> e'
   ) in
-  try ignore (reduce e (fun e -> e)); None
-  with Beta_reduction e -> Some e
+  let rec cbn e r = (
+    match e with
+    | Apply (f, a) -> (
+      let r' f = Apply (f, a) in
+      match cbn f r' with
+      | Lambda (v, e') -> (
+        let e = cbn (subst (v, a) e') r' in
+        trace (r e);
+        e
+      )
+      | _ -> e
+    )
+    | _ -> e
+  ) in
+  let rec nor e r = (
+    match e with
+    | Lambda (v, e) -> (
+      let r' e = Lambda (v, e) in
+      Lambda (v, nor e r')
+    )
+    | Apply (f, a) -> (
+      let r' f = Apply (f, a) in
+      match cbn f r' with
+      | Lambda (v, e') -> (
+        let e = nor (subst (v, a) e') r' in
+        trace (r e);
+        e
+      )
+      | f -> (
+        let r' f = Apply (f, a) in
+        let f = nor f r' in
+        let r' a = Apply (f, a) in
+        Apply (f, nor a r')
+      )
+    )
+    | _ -> e
+  ) in
+  nor e (fun x -> x)

@@ -34,7 +34,7 @@ exp0:
 
 exp1:
   | e=exp0 { e }
-  | f=exp1 p=exp0 { Apply (f, p) }
+  | f=exp1 a=exp0 { Apply (f, a) }
 
 exp2:
   | e=exp1 { e }

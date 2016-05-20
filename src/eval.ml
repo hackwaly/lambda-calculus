@@ -31,26 +31,20 @@ let create ?(globals) () = {
 let rec resolve bindings exp =
   match exp with
   | Var v -> (try StringMap.find v bindings with Not_found -> exp)
-  | Apply (f, p) -> Apply (resolve bindings f, resolve bindings p)
+  | Apply (f, a) -> Apply (resolve bindings f, resolve bindings a)
   | Lambda (v, e) ->
     let bindings = StringMap.remove v bindings in
     Lambda (v, resolve bindings e)
 
 let execute ctx cmd =
+  let print_exp exp =
+    print_endline ("=> " ^ Lambda.string_of exp)
+  in
   match cmd with
   | Eval exp ->
     let exp = resolve ctx.globals exp in
-    print_endline ("=> " ^ Lambda.string_of exp);
-    let rec interp exp =
-      match Lambda.beta_reduce exp with
-      | Some exp -> (
-        print_endline ("=> " ^ Lambda.string_of exp);
-        Unix.sleepf 0.016;
-        interp exp
-      )
-      | None -> ()
-    in
-    interp exp
+    print_exp exp;
+    ignore (Lambda.normalize ~trace:print_exp exp)
   | Bind (name, exp) -> (
     ctx.globals <- StringMap.add name exp ctx.globals
   )
