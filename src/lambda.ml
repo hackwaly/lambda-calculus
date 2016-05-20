@@ -51,7 +51,58 @@ let string_of exp =
   let he = to_hum_exp exp in
   string_of_hum_exp he
 
-let rec normalize e =
+let unique_vars exp =
+  let module VarSet = Set.Make(String) in
+  let module VarMap = Map.Make(String) in
+  let rec freevars ?(boundvars=VarSet.empty) exp = (
+    match exp with
+    | Var v -> (
+      if VarSet.mem v boundvars then VarSet.empty
+      else VarSet.add v VarSet.empty
+    )
+    | Apply (f, a) -> VarSet.union (freevars ~boundvars f) (freevars ~boundvars a)
+    | Lambda (v, e) -> freevars ~boundvars:(VarSet.add v boundvars) e
+  ) in
+  let avoid = ref (freevars exp) in
+  let sn = ref 0 in
+  let rec var_of_int n = (
+    let t = n mod 26 in
+    let n = n / 26 in
+    let s = String.make 1 (Char.chr ((Char.code 'a') + t)) in
+    if n > 0 then var_of_int n ^ s else s:string
+  ) in
+  let rec gen_var () = (
+    let var = var_of_int !sn in
+    if VarSet.mem var !avoid then (
+      sn := !sn + 1;
+      gen_var ()
+    ) else (
+      avoid := VarSet.add var !avoid;
+      var
+    )
+  ) in
+  let unique_var var = (
+    (* if VarSet.mem var !avoid then *)
+      gen_var ()
+    (* else var *)
+  ) in
+  let rec rename ?(map=VarMap.empty) exp = (
+    match exp with
+    | Var v -> (
+      Var (try VarMap.find v map with Not_found -> v)
+    )
+    | Lambda (v, e) -> (
+      let var = unique_var v in
+      avoid := VarSet.add var !avoid;
+      Lambda (var, rename ~map:(VarMap.add v var map) e)
+    )
+    | Apply (f, a) -> (
+      Apply (rename ~map f, rename ~map a)
+    )
+  ) in
+  rename exp
+
+let rec normalize exp =
   let rec subst (v, a) e = (
     match e with
     | Lambda (v', e') when v' <> v -> Lambda (v', subst (v, a) e')
@@ -78,4 +129,4 @@ let rec normalize e =
     )
     | _ -> e
   ) in
-  nor e
+  unique_vars (nor (unique_vars exp))
