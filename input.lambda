@@ -1,5 +1,2 @@
-let S = λf.λg.λx. f x (g x)
-let K = λx.λy. x
-let I = λx. x
-let Y = λf. (λx. f (x x)) (λx. f (x x))
-Y (K I)
+let fib = Y (λf. λn. if (leq n 2) n (plus (f (minus n 1)) (f (minus n 1))))
+fib 4

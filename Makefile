@@ -10,7 +10,7 @@ OCBFLAGS = \
 .SILENT: build
 
 test: build
-	cat input.lambda | ./main.native
+	cat input.lambda | ./main.native > output.txt
 
 build:
 	ocamlbuild $(OCBFLAGS) main.native
